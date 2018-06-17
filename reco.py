@@ -16,8 +16,6 @@ from pytoolbox.ai.vision import utils
 from pytoolbox.ai.vision.face import detect, recognize
 
 
-
-
 def main():
 
     # Initialize
