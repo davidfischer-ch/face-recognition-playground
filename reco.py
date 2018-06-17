@@ -13,11 +13,11 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import LinearSVC
 
-import face
-from face.align import AlignDlib
-from face.model import create_model
+import face_reco
+from face_reco.align import AlignDlib
+from face_reco.model import create_model
 
-face_path = face.__path__._path[0]
+face_reco_path = face_reco.__path__._path[0]
 
 ALIGNMENT_DATA_FILENAME = os.path.join(os.path.dirname(__file__), 'landmarks.dat')
 
@@ -113,7 +113,7 @@ def load_image(path):
 
 def load_model():
     model = create_model()
-    model.load_weights(os.path.join(face_path, 'weights', 'nn4.small2.v1.h5'))
+    model.load_weights(os.path.join(face_reco_path, 'weights', 'nn4.small2.v1.h5'))
     return model
 
 
