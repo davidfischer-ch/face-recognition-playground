@@ -5,9 +5,9 @@
 
 import os
 
-import numpy as np
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+import numpy as np
 from pytoolbox import filesystem
 from pytoolbox.ai.vision import utils
 from pytoolbox.ai.vision.face import detect, recognize
