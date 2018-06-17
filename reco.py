@@ -6,6 +6,8 @@
 import os
 
 import numpy as np
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 from pytoolbox import filesystem
 from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
@@ -15,16 +17,18 @@ from sklearn.svm import LinearSVC
 from pytoolbox.ai.vision import utils
 from pytoolbox.ai.vision.face import detect, recognize
 
+IMAGES_DIRECTORY = os.path.join(os.path.dirname(__file__), 'images')
 
-def main():
+
+def main_demo():
 
     # Initialize
     detector = detect.DlibFaceDetector()
     recognizer = recognize.load_nn4_small2_model()
-    identities = load_identities(os.path.join(os.path.dirname(__file__), 'images'))
+    identities = load_identities(IMAGES_DIRECTORY)
     vectors = np.zeros((identities.shape[0], 128))
     for counter, identity in enumerate(identities):
-        box, face = detector.extract_largest_face(utils.load_image(identity.path))
+        box, face = detector.extract_largest_face(identity.load())
         vectors[counter] = recognizer.predict(np.expand_dims(utils.normalize_rgb(face), axis=0))[0]
 
     # Train
@@ -57,6 +61,19 @@ def main():
     print(f'KNN accuracy = {acc_knn}, SVM accuracy = {acc_svc}')
 
 
+def main_show():
+    detector = detect.DlibFaceDetector()
+
+    for identity in load_identities(IMAGES_DIRECTORY):
+        image = identity.load()
+        plt.imshow(image)
+        for box in detector.get_all_faces_bounding_boxes(image):
+            print(identity.path, 'Detected face at coordinates', box)
+            plt.gca().add_patch(patches.Rectangle(
+                (box.left(), box.top()), box.width(), box.height(), fill=False, color='red'))
+        plt.show()
+
+
 class Identity(object):
 
     __slots__ = ('name', 'path')
@@ -68,6 +85,9 @@ class Identity(object):
     def __repr__(self):
         return f"Identity(name='{self.name}', path='{self.path}')"
 
+    def load(self):
+        return utils.load_image(self.path)
+
 
 def load_identities(path, patterns=('*.jpg', '*.jpeg'), **kwargs):
     identities = []
@@ -78,4 +98,4 @@ def load_identities(path, patterns=('*.jpg', '*.jpeg'), **kwargs):
 
 
 if __name__ == '__main__':
-    main()
+    main_demo()
