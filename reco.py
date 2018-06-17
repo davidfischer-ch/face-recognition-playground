@@ -9,21 +9,19 @@ import numpy as np
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from pytoolbox import filesystem
+from pytoolbox.ai.vision import utils
+from pytoolbox.ai.vision.face import detect, recognize
 from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import LinearSVC
 
-from pytoolbox.ai.vision import utils
-from pytoolbox.ai.vision.face import detect, recognize
-
 IMAGES_DIRECTORY = os.path.join(os.path.dirname(__file__), 'images')
 
 
 def main_demo():
-
-    # Initialize
     detector = detect.DlibFaceDetector()
+
     recognizer = recognize.load_nn4_small2_model()
     identities = load_identities(IMAGES_DIRECTORY)
     vectors = np.zeros((identities.shape[0], 128))
