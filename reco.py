@@ -30,8 +30,8 @@ def main():
     identities = load_identities(os.path.join(face_reco_path, 'images'))
     vectors = np.zeros((identities.shape[0], 128))
     for counter, identity in enumerate(identities):
-        image = get_faces(alignment, load_image(identity.path), largest_only=True)
-        vectors[counter] = model.predict(np.expand_dims(normalize_rgb(image), axis=0))[0]
+        face = get_faces(alignment, load_image(identity.path), largest_only=True)
+        vectors[counter] = model.predict(np.expand_dims(normalize_rgb(face), axis=0))[0]
 
     # Train
     targets = np.array([i.name for i in identities])
