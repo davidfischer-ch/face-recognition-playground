@@ -27,15 +27,11 @@ def main():
     # Initialize
     alignment = load_alignment_lib()
     model = load_model()
-    identities = load_identities(os.path.join(face_path, 'images'))
-    embedded = np.zeros((identities.shape[0], 128))
+    identities = load_identities(os.path.join(face_reco_path, 'images'))
+    vectors = np.zeros((identities.shape[0], 128))
     for counter, identity in enumerate(identities):
-        image = load_image(identity.path)
-        image = align_image(alignment, image)
-        # scale RGB values to interval [0,1]
-        image = (image / 255).astype(np.float32)
-        # obtain embedding vector for image
-        embedded[counter] = model.predict(np.expand_dims(image, axis=0))[0]
+        image = get_faces(alignment, load_image(identity.path), largest_only=True)
+        vectors[counter] = model.predict(np.expand_dims(normalize_rgb(image), axis=0))[0]
 
     # Train
     targets = np.array([i.name for i in identities])
@@ -49,8 +45,8 @@ def main():
     test_idx = np.arange(identities.shape[0]) % 4 != 0
     train_idx = np.arange(identities.shape[0]) % 4 == 0
 
-    X_train = embedded[train_idx]
-    X_test = embedded[test_idx]
+    X_train = vectors[train_idx]
+    X_test = vectors[test_idx]
 
     y_train = y[train_idx]
     y_test = y[test_idx]
@@ -79,10 +75,15 @@ class Identity(object):
         return f"Identity(name='{self.name}', path='{self.path}')"
 
 
-def align_image(alignment, image):
-    return alignment.align(
-        96, image, alignment.get_largest_face_bounding_box(image),
-        landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE)
+def get_faces(alignment, image, *, largest_only=False):
+    if largest_only:
+        return alignment.align(
+            96, image, alignment.get_largest_face_bounding_box(image),
+            landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE)
+    return [
+        alignment.align(96, image, box, landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE)
+        for box in alignment.get_all_face_bounding_boxes(image)
+    ]
 
 
 def load_alignment_lib(filename=ALIGNMENT_DATA_FILENAME):
@@ -115,6 +116,11 @@ def load_model():
     model = create_model()
     model.load_weights(os.path.join(face_reco_path, 'weights', 'nn4.small2.v1.h5'))
     return model
+
+
+def normalize_rgb(image):
+    """Scale integer RGB values [0,255] to float32 [0.0,1.0]."""
+    return (image / 255).astype(np.float32)
 
 
 if __name__ == '__main__':
