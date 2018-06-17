@@ -44,6 +44,7 @@ def main():
     # Numerical encoding of identities
     y = encoder.transform(targets)
 
+    # Train with only 1/4 of the dataset, then test with 3/4
     test_idx = np.arange(metadata.shape[0]) % 4 != 0
     train_idx = np.arange(metadata.shape[0]) % 4 == 0
 
