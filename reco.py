@@ -3,35 +3,31 @@
 # https://krasserm.github.io/2018/02/07/deep-face-recognition/
 # http://nbviewer.jupyter.org/github/krasserm/face-recognition/blob/master/face-recognition.ipynb?flush_cache=true
 
-import bz2, os
-from urllib.request import urlopen
+import os
 
-import cv2, numpy as np
+import numpy as np
 from pytoolbox import filesystem
 from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import LinearSVC
 
-import face_reco
-from face_reco.align import AlignDlib
-from face_reco.model import create_model
+from pytoolbox.ai.vision import utils
+from pytoolbox.ai.vision.face import detect, recognize
 
-face_reco_path = face_reco.__path__._path[0]
 
-ALIGNMENT_DATA_FILENAME = os.path.join(os.path.dirname(__file__), 'landmarks.dat')
 
 
 def main():
 
     # Initialize
-    alignment = load_alignment_lib()
-    model = load_model()
-    identities = load_identities(os.path.join(face_reco_path, 'images'))
+    detector = detect.DlibFaceDetector()
+    recognizer = recognize.load_nn4_small2_model()
+    identities = load_identities(os.path.join(os.path.dirname(__file__), 'images'))
     vectors = np.zeros((identities.shape[0], 128))
     for counter, identity in enumerate(identities):
-        box, face = get_largest_face(alignment, load_image(identity.path), extract=True)
-        vectors[counter] = model.predict(np.expand_dims(normalize_rgb(face), axis=0))[0]
+        box, face = detector.extract_largest_face(utils.load_image(identity.path))
+        vectors[counter] = recognizer.predict(np.expand_dims(utils.normalize_rgb(face), axis=0))[0]
 
     # Train
     targets = np.array([i.name for i in identities])
@@ -75,56 +71,12 @@ class Identity(object):
         return f"Identity(name='{self.name}', path='{self.path}')"
 
 
-def get_all_faces(alignment, image, *, dimension=96, extract):
-    boxes = alignment.get_all_face_bounding_boxes(image)
-    return boxes if not extract else (
-        (b, alignment.align(dimension, image, b, landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE))
-        for b in alignment.get_all_face_bounding_boxes(image)
-    )
-
-
-def get_largest_face(alignment, image, *, dimension=96, extract):
-    box = alignment.get_largest_face_bounding_box(image)
-    return box if not extract else (
-        box, alignment.align(dimension, image, box, landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE)
-    )
-
-
-def load_alignment_lib(filename=ALIGNMENT_DATA_FILENAME):
-    """Initialize the OpenFace face alignment utility."""
-    if not os.path.exists(filename):
-        url = 'http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2'
-        decompressor = bz2.BZ2Decompressor()
-        with urlopen(url) as src, open(filename, 'wb') as dst:
-            data = src.read(1024)
-            while len(data) > 0:
-                dst.write(decompressor.decompress(data))
-                data = src.read(1024)
-    return AlignDlib(filename)
-
-
 def load_identities(path, patterns=('*.jpg', '*.jpeg'), **kwargs):
     identities = []
     for name in os.listdir(path):
         for filename in filesystem.find_recursive(os.path.join(path, name), patterns, **kwargs):
             identities.append(Identity(name, filename))
     return np.array(identities)
-
-
-def load_image(path):
-    """Reverse channels because OpenCV loads images in BGR mode."""
-    return cv2.imread(path, 1)[..., ::-1]
-
-
-def load_model():
-    model = create_model()
-    model.load_weights(os.path.join(face_reco_path, 'weights', 'nn4.small2.v1.h5'))
-    return model
-
-
-def normalize_rgb(image):
-    """Scale integer RGB values [0,255] to float32 [0.0,1.0]."""
-    return (image / 255).astype(np.float32)
 
 
 if __name__ == '__main__':
