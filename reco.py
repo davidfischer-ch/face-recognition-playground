@@ -30,7 +30,7 @@ def main():
     identities = load_identities(os.path.join(face_reco_path, 'images'))
     vectors = np.zeros((identities.shape[0], 128))
     for counter, identity in enumerate(identities):
-        face = get_faces(alignment, load_image(identity.path), largest_only=True)
+        box, face = get_largest_face(alignment, load_image(identity.path), extract=True)
         vectors[counter] = model.predict(np.expand_dims(normalize_rgb(face), axis=0))[0]
 
     # Train
@@ -75,15 +75,19 @@ class Identity(object):
         return f"Identity(name='{self.name}', path='{self.path}')"
 
 
-def get_faces(alignment, image, *, largest_only=False):
-    if largest_only:
-        return alignment.align(
-            96, image, alignment.get_largest_face_bounding_box(image),
-            landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE)
-    return [
-        alignment.align(96, image, box, landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE)
-        for box in alignment.get_all_face_bounding_boxes(image)
-    ]
+def get_all_faces(alignment, image, *, dimension=96, extract):
+    boxes = alignment.get_all_face_bounding_boxes(image)
+    return boxes if not extract else (
+        (b, alignment.align(dimension, image, b, landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE))
+        for b in alignment.get_all_face_bounding_boxes(image)
+    )
+
+
+def get_largest_face(alignment, image, *, dimension=96, extract):
+    box = alignment.get_largest_face_bounding_box(image)
+    return box if not extract else (
+        box, alignment.align(dimension, image, box, landmark_indices=AlignDlib.OUTER_EYES_AND_NOSE)
+    )
 
 
 def load_alignment_lib(filename=ALIGNMENT_DATA_FILENAME):
