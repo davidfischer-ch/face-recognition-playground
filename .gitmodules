@@ -1,0 +1,3 @@
+[submodule "face"]
+	path = face
+	url = git@github.com:davidfischer-ch/face-recognition.git
